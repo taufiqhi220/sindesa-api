@@ -61,9 +61,24 @@ mysqli_close($conn);
 // Route: /warga/surat/{id}/cetak (via WargaSuratController@cetakPdf)
 // Karena ini dari mobile tanpa session Laravel, kita generate PDF langsung
 
-// Load Laravel bootstrap
-$laravelPath = realpath(__DIR__ . '/../sindesa');
-if (!$laravelPath || !file_exists($laravelPath . '/vendor/autoload.php')) {
+// Load Laravel bootstrap (Cari folder laravel otomatis di ../.., .., ../sindesa-app, dll)
+$laravelCandidates = [
+    realpath(__DIR__ . '/../..'),             // Jika API di sindesa-app/public/api.domain.com/
+    realpath(__DIR__ . '/..'),                // Jika API di sindesa-app/public_api/
+    realpath(__DIR__ . '/../sindesa-app'),
+    realpath(__DIR__ . '/../sindesa'),
+    '/home/sindesa/sindesa-app'
+];
+
+$laravelPath = null;
+foreach ($laravelCandidates as $cand) {
+    if ($cand && file_exists($cand . '/vendor/autoload.php')) {
+        $laravelPath = $cand;
+        break;
+    }
+}
+
+if (!$laravelPath) {
     header('Content-Type: application/json; charset=utf-8');
     echo json_encode(["success" => false, "message" => "Laravel path not found"]);
     exit;

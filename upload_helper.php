@@ -8,9 +8,10 @@
 function get_upload_dir($subfolder = 'pengajuan') {
     $sub = trim($subfolder, '/') . '/';
     $candidates = [
+        "../../storage/app/public/",        // Jika API di sindesa-app/public/api.domain.com/
+        "../storage/app/public/",           // Jika API di sindesa-app/public_api/
+        "../../../storage/app/public/",    // Jika API di subfolder lebih dalam
         "/home/sindesa/sindesa-app/storage/app/public/",
-        "../storage/app/public/",
-        "../../storage/app/public/",
         "../sindesa-app/storage/app/public/",
         "../sindesa/storage/app/public/",
         "./uploads/"
@@ -22,9 +23,7 @@ function get_upload_dir($subfolder = 'pengajuan') {
             return $dir;
         }
     }
-    $fallback = is_dir("/home/sindesa/sindesa-app/storage/app/public/")
-        ? "/home/sindesa/sindesa-app/storage/app/public/" . $sub
-        : "../sindesa/storage/app/public/" . $sub;
+    $fallback = "../../storage/app/public/" . $sub;
     if (!is_dir($fallback)) @mkdir($fallback, 0777, true);
     return $fallback;
 }

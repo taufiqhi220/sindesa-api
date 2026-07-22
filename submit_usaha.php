@@ -51,6 +51,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     elseif (!empty($_REQUEST['edit_id'])) $edit_id = (int)$_REQUEST['edit_id'];
     elseif (!empty($_REQUEST['id'])) $edit_id = (int)$_REQUEST['id'];
     
+    $old_data = [];
     if ($edit_id > 0) {
         $res_old = mysqli_query($conn, "SELECT data_tambahan FROM pengajuan_surats WHERE id = '$edit_id' LIMIT 1");
         if ($res_old && mysqli_num_rows($res_old) > 0) {

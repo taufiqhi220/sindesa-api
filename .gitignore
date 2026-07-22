@@ -9,11 +9,11 @@ debug.txt
 *.log
 error_log
 
-# Environment & Config files (private credentials)
+# Server credentials (file privat di server cPanel)
 .env
 .env.local
 .env.production
-db_config.php
+db_config.server.php
 
 # IDE files
 .idea/

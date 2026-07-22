@@ -93,7 +93,8 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
             }
         }
     }
-    $mega_merge = mega_merge_data($full_user, $uploaded_paths, $form_data);
+    $base_user = array_merge($full_user ?? [], $old_data ?? []);
+    $mega_merge = mega_merge_data($base_user, $uploaded_paths, $form_data);
     
     // Untuk kematian: pelapor = user yang login, pemohon = user yang login
     $mega_merge['nik_pemohon']  = $full_user['nik'] ?? '';

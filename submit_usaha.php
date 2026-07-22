@@ -64,7 +64,8 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
             }
         }
     }
-    $mega_merge = mega_merge_data($full_user, $uploaded_paths, $form_data);
+    $base_user = array_merge($full_user ?? [], $old_data ?? []);
+    $mega_merge = mega_merge_data($base_user, $uploaded_paths, $form_data);
     inject_pemohon_pelapor($mega_merge, $full_user);
     $data_tambahan = json_encode($mega_merge);
     // --- END UNIVERSAL AUTOFILL ---

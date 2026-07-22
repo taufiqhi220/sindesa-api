@@ -45,23 +45,23 @@ function mega_merge_data($full_user, $uploaded_paths, $existing_data_arr) {
  * Inject keys pemohon & pelapor dari data user
  */
 function inject_pemohon_pelapor(&$merged, $full_user) {
-    $merged['nik_pemohon']           = $full_user['nik'] ?? '';
-    $merged['nama_pemohon']          = $full_user['name'] ?? '';
-    $merged['tempat_lahir_pemohon']  = $full_user['tempat_lahir'] ?? '';
-    $merged['tanggal_lahir_pemohon'] = $full_user['tanggal_lahir'] ?? '';
-    $merged['jenis_kelamin_pemohon'] = $full_user['jenis_kelamin'] ?? '';
-    $merged['agama_pemohon']         = $full_user['agama'] ?? '';
-    $merged['pekerjaan_pemohon']     = $full_user['pekerjaan'] ?? '';
-    $merged['alamat_pemohon']        = $full_user['alamat_lengkap'] ?? '';
+    if (empty($merged['nik_pemohon']))           $merged['nik_pemohon']           = $full_user['nik'] ?? '';
+    if (empty($merged['nama_pemohon']))          $merged['nama_pemohon']          = $full_user['name'] ?? '';
+    if (empty($merged['tempat_lahir_pemohon']))  $merged['tempat_lahir_pemohon']  = $full_user['tempat_lahir'] ?? '';
+    if (empty($merged['tanggal_lahir_pemohon'])) $merged['tanggal_lahir_pemohon'] = $full_user['tanggal_lahir'] ?? '';
+    if (empty($merged['jenis_kelamin_pemohon'])) $merged['jenis_kelamin_pemohon'] = $full_user['jenis_kelamin'] ?? '';
+    if (empty($merged['agama_pemohon']))         $merged['agama_pemohon']         = $full_user['agama'] ?? '';
+    if (empty($merged['pekerjaan_pemohon']))     $merged['pekerjaan_pemohon']     = $full_user['pekerjaan'] ?? '';
+    if (empty($merged['alamat_pemohon']))        $merged['alamat_pemohon']        = $full_user['alamat_lengkap'] ?? '';
     
-    $merged['nik_pelapor']           = $full_user['nik'] ?? '';
-    $merged['nama_pelapor']          = $full_user['name'] ?? '';
-    $merged['tempat_lahir_pelapor']  = $full_user['tempat_lahir'] ?? '';
-    $merged['tanggal_lahir_pelapor'] = $full_user['tanggal_lahir'] ?? '';
-    $merged['jenis_kelamin_pelapor'] = $full_user['jenis_kelamin'] ?? '';
-    $merged['agama_pelapor']         = $full_user['agama'] ?? '';
-    $merged['pekerjaan_pelapor']     = $full_user['pekerjaan'] ?? '';
-    $merged['alamat_pelapor']        = $full_user['alamat_lengkap'] ?? '';
+    if (empty($merged['nik_pelapor']))           $merged['nik_pelapor']           = $full_user['nik'] ?? '';
+    if (empty($merged['nama_pelapor']))          $merged['nama_pelapor']          = $full_user['name'] ?? '';
+    if (empty($merged['tempat_lahir_pelapor']))  $merged['tempat_lahir_pelapor']  = $full_user['tempat_lahir'] ?? '';
+    if (empty($merged['tanggal_lahir_pelapor'])) $merged['tanggal_lahir_pelapor'] = $full_user['tanggal_lahir'] ?? '';
+    if (empty($merged['jenis_kelamin_pelapor'])) $merged['jenis_kelamin_pelapor'] = $full_user['jenis_kelamin'] ?? '';
+    if (empty($merged['agama_pelapor']))         $merged['agama_pelapor']         = $full_user['agama'] ?? '';
+    if (empty($merged['pekerjaan_pelapor']))     $merged['pekerjaan_pelapor']     = $full_user['pekerjaan'] ?? '';
+    if (empty($merged['alamat_pelapor']))        $merged['alamat_pelapor']        = $full_user['alamat_lengkap'] ?? '';
 }
 
 /**

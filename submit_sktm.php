@@ -87,7 +87,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     $mega_merge = mega_merge_data($base_user, $uploaded_paths, $form_data);
     inject_pemohon_pelapor($mega_merge, $full_user);
 
-    $data_tambahan = json_encode($mega_merge);
+    $data_tambahan = json_encode($mega_merge, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     // --- END UNIVERSAL AUTOFILL ---
     
     $data_tambahan_escaped = mysqli_real_escape_string($conn, $data_tambahan);

@@ -102,7 +102,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     $mega_merge['nama_pemohon'] = $full_user['name'] ?? '';
     $mega_merge['nik_pelapor']  = $full_user['nik'] ?? '';
     $mega_merge['nama_pelapor'] = $_POST['nama_pelapor'] ?? $full_user['name'] ?? '';
-    $data_tambahan = json_encode($mega_merge);
+    $data_tambahan = json_encode($mega_merge, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     // --- END UNIVERSAL AUTOFILL ---
     
     $data_tambahan_escaped = mysqli_real_escape_string($conn, $data_tambahan);

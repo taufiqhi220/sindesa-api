@@ -6,7 +6,7 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-$nik = isset($_GET['nik']) ? mysqli_real_escape_string($conn, $_GET['nik']) : '';
+$nik = isset($_REQUEST['nik']) ? mysqli_real_escape_string($conn, trim($_REQUEST['nik'])) : '';
 
 if (empty($nik)) {
     api_error("NIK tidak ditemukan");

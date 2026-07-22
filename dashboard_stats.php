@@ -2,7 +2,7 @@
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
-$nik = isset($_GET['nik']) ? mysqli_real_escape_string($conn, $_GET['nik']) : '';
+$nik = isset($_REQUEST['nik']) ? mysqli_real_escape_string($conn, trim($_REQUEST['nik'])) : '';
 
 if (empty($nik)) {
     api_error("NIK tidak ditemukan");

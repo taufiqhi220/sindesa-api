@@ -55,6 +55,6 @@ function api_response($data, $httpCode = 200) {
  * @param string $message Pesan error
  * @param int $httpCode HTTP status code (default 400)
  */
-function api_error($message, $httpCode = 400) {
+function api_error($message, $httpCode = 200) {
     api_response(["success" => false, "message" => $message], $httpCode);
 }

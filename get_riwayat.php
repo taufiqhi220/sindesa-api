@@ -2,10 +2,10 @@
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
-$nik = isset($_GET['nik']) ? mysqli_real_escape_string($conn, $_GET['nik']) : '';
+$nik = isset($_REQUEST['nik']) ? mysqli_real_escape_string($conn, trim($_REQUEST['nik'])) : '';
 
 if (empty($nik)) {
-    api_error("NIK tidak ditemukan");
+    api_response(["success" => false, "message" => "NIK tidak ditemukan", "data" => []]);
 }
 
 // Mapping jenis_surat snake_case ke nama yang user-friendly untuk Android
@@ -35,8 +35,8 @@ $namaStatus = [
     'ditolak'             => 'Ditolak',
 ];
 
-// 1. Cari ID User berdasarkan NIK
-$sql_user = "SELECT id FROM users WHERE nik = '$nik' LIMIT 1";
+// 1. Cari ID User berdasarkan NIK atau Email
+$sql_user = "SELECT id FROM users WHERE nik = '$nik' OR email = '$nik' LIMIT 1";
 $res_user = mysqli_query($conn, $sql_user);
 
 if ($res_user && mysqli_num_rows($res_user) > 0) {

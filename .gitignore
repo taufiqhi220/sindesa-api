@@ -9,10 +9,11 @@ debug.txt
 *.log
 error_log
 
-# Environment files
+# Environment & Config files (private credentials)
 .env
 .env.local
 .env.production
+db_config.php
 
 # IDE files
 .idea/

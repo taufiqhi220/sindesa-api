@@ -12,7 +12,7 @@ if (!$conn) {
 // Yang harus terdaftar adalah NIK PELAPOR (orang yang melaporkan kematian).
 $nik_almarhum = $_POST['nik_almarhum'] ?? '';
 $nama_almarhum = $_POST['nama_almarhum'] ?? '';
-$nik_pelapor = $_POST['nik_pelapor'] ?? '';
+$nik_pelapor = trim($_POST['nik'] ?? $_POST['nik_pelapor'] ?? $_POST['nik_pemohon'] ?? $_REQUEST['nik'] ?? '');
 
 if (empty($nik_almarhum)) {
     api_error("NIK almarhum tidak boleh kosong");

@@ -8,8 +8,8 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-// Untuk surat beda nama, NIK dari dokumen 1 (KTP) yang digunakan
-$nik = $_POST['nik_dok1'] ?? '';
+// NIK pengaju diutamakan dari user yang login (nik/nik_pemohon), baru fallback ke nik_dok1
+$nik = trim($_POST['nik'] ?? $_POST['nik_pemohon'] ?? $_POST['nik_dok1'] ?? $_REQUEST['nik'] ?? '');
 if (empty($nik)) {
     api_error("NIK tidak boleh kosong");
 }

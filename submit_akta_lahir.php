@@ -8,12 +8,12 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-// Untuk akta lahir, NIK pengaju bisa dari ayah atau ibu
-$nik_pengaju = $_POST['nik_ayah'] ?? $_POST['nik_ibu'] ?? '';
+// NIK pengaju diutamakan dari user yang login (nik/nik_pemohon), baru fallback ke nik_ayah/nik_ibu
+$nik_pengaju = trim($_POST['nik'] ?? $_POST['nik_pemohon'] ?? $_POST['nik_pelapor'] ?? $_POST['nik_ayah'] ?? $_POST['nik_ibu'] ?? $_REQUEST['nik'] ?? '');
 $nama_anak = $_POST['nama_anak'] ?? '';
 
 if (empty($nik_pengaju)) {
-    api_error("NIK pengaju (ayah/ibu) tidak boleh kosong");
+    api_error("NIK pengaju tidak boleh kosong");
 }
 
 // 1. Upload berkas

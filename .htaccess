@@ -1,0 +1,17 @@
+# Sindesa API - Apache Configuration
+
+# Matikan Directory Browsing (Keamanan)
+Options -Indexes
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Direct Index File
+DirectoryIndex index.php
+
+# CORS Headers
+<IfModule mod_headers.c>
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>

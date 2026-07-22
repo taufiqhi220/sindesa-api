@@ -15,19 +15,21 @@ $res_user = mysqli_query($conn, $sql_user);
 if ($res_user && mysqli_num_rows($res_user) > 0) {
     $user = mysqli_fetch_assoc($res_user);
     $user_id = (int)$user['id'];
+    $nik_clean = mysqli_real_escape_string($conn, $user['nik'] ?? $nik);
+    $user_clause = "(user_id = '$user_id' OR data_tambahan LIKE '%\"nik\":\"$nik_clean\"%' OR data_tambahan LIKE '%\"nik_pemohon\":\"$nik_clean\"%')";
 
     // Hitung total pengajuan
-    $sql_total = "SELECT COUNT(id) as total FROM pengajuan_surats WHERE user_id = '$user_id'";
+    $sql_total = "SELECT COUNT(id) as total FROM pengajuan_surats WHERE $user_clause";
     $res_total = mysqli_query($conn, $sql_total);
     $total_pengajuan = ($res_total) ? mysqli_fetch_assoc($res_total)['total'] : 0;
 
     // Hitung pengajuan yang sedang diproses (menunggu_verifikasi atau diproses_kades)
-    $sql_proses = "SELECT COUNT(id) as proses FROM pengajuan_surats WHERE user_id = '$user_id' AND status IN ('menunggu_verifikasi', 'diproses_kades')";
+    $sql_proses = "SELECT COUNT(id) as proses FROM pengajuan_surats WHERE $user_clause AND status IN ('menunggu_verifikasi', 'diproses_kades')";
     $res_proses = mysqli_query($conn, $sql_proses);
     $proses_pengajuan = ($res_proses) ? mysqli_fetch_assoc($res_proses)['proses'] : 0;
 
     // Layanan Sering Digunakan
-    $sql_sering = "SELECT jenis_surat, COUNT(id) as count FROM pengajuan_surats WHERE user_id = '$user_id' GROUP BY jenis_surat ORDER BY count DESC LIMIT 2";
+    $sql_sering = "SELECT jenis_surat, COUNT(id) as count FROM pengajuan_surats WHERE $user_clause GROUP BY jenis_surat ORDER BY count DESC LIMIT 2";
     $res_sering = mysqli_query($conn, $sql_sering);
     $sering_digunakan = [];
     if ($res_sering) {

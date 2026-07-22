@@ -43,9 +43,17 @@ if ($res_user && mysqli_num_rows($res_user) > 0) {
     $user = mysqli_fetch_assoc($res_user);
     $user_id = $user['id'];
 
-    // 2. Ambil Riwayat berdasarkan user_id (termasuk kolom baru)
+    // 2. Ambil Riwayat berdasarkan user_id ATAU NIK di data_tambahan
     $user_id_safe = (int)$user_id;
-    $sql = "SELECT id, jenis_surat, keperluan, status, nomor_surat, metode_ttd, pesan_penolakan, token_verifikasi, file_surat, created_at, updated_at FROM pengajuan_surats WHERE user_id = '$user_id_safe' ORDER BY id DESC";
+    $nik_clean = mysqli_real_escape_string($conn, $user['nik'] ?? $nik);
+    
+    $sql = "SELECT id, jenis_surat, keperluan, status, nomor_surat, metode_ttd, pesan_penolakan, token_verifikasi, file_surat, created_at, updated_at 
+            FROM pengajuan_surats 
+            WHERE user_id = '$user_id_safe' 
+               OR data_tambahan LIKE '%\"nik\":\"$nik_clean\"%' 
+               OR data_tambahan LIKE '%\"nik_pemohon\":\"$nik_clean\"%' 
+               OR data_tambahan LIKE '%\"nik_pelapor\":\"$nik_clean\"%' 
+            ORDER BY id DESC";
     $result = mysqli_query($conn, $sql);
     
     if (!$result) {

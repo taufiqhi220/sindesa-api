@@ -12,7 +12,7 @@ if (!$conn) {
 }
 
 // Ambil data dari Android
-$nik = $_POST['nik'] ?? '';
+$nik = trim($_POST['nik'] ?? $_POST['nik_pemohon'] ?? $_POST['nik_pelapor'] ?? $_REQUEST['nik'] ?? '');
 $no_kk = $_POST['no_kk'] ?? '';
 $nama = $_POST['nama'] ?? '';
 $tempat_lahir = $_POST['tempat_lahir'] ?? '';

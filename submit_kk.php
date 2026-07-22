@@ -12,7 +12,7 @@ if (!$conn) {
 }
 
 // Ambil data dari Android (menerima key baru dan lama untuk backward compat)
-$nik = $_POST['nik'] ?? '';
+$nik = trim($_POST['nik'] ?? $_POST['nik_pemohon'] ?? $_POST['nik_pelapor'] ?? $_REQUEST['nik'] ?? '');
 
 if (empty($nik)) {
     api_error("NIK tidak boleh kosong");

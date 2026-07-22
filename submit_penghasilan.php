@@ -42,7 +42,12 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     $res_full_user = mysqli_query($conn, "SELECT * FROM users WHERE id = '$user_id' LIMIT 1");
     $full_user = mysqli_fetch_assoc($res_full_user);
     $uploaded_paths = process_all_uploads($upload_dir, $full_user['nik']);
-    $edit_id = isset($_POST['edit_id']) ? (int)$_POST['edit_id'] : 0;
+    $edit_id = 0;
+    if (!empty($_POST['edit_id'])) $edit_id = (int)$_POST['edit_id'];
+    elseif (!empty($_POST['id'])) $edit_id = (int)$_POST['id'];
+    elseif (!empty($_POST['id_pengajuan'])) $edit_id = (int)$_POST['id_pengajuan'];
+    elseif (!empty($_REQUEST['edit_id'])) $edit_id = (int)$_REQUEST['edit_id'];
+    elseif (!empty($_REQUEST['id'])) $edit_id = (int)$_REQUEST['id'];
     
     if ($edit_id > 0) {
         $res_old = mysqli_query($conn, "SELECT data_tambahan FROM pengajuan_surats WHERE id = '$edit_id' LIMIT 1");
@@ -68,7 +73,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
         $sql = "UPDATE pengajuan_surats SET 
                 data_tambahan = '$data_tambahan_escaped',
                 updated_at = NOW()
-                WHERE id = '$edit_id' AND user_id = '$user_id'";
+                WHERE id = '$edit_id'";
     } else {
         $sql = "INSERT INTO pengajuan_surats (user_id, jenis_surat, keperluan, token_verifikasi, status, data_tambahan, created_at, updated_at)
             VALUES ('$user_id', 'keterangan_penghasilan', 'Surat Keterangan Penghasilan', '$token', 'menunggu_verifikasi', '$data_tambahan_escaped', NOW(), NOW())";

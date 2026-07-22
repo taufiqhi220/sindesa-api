@@ -19,13 +19,19 @@ if ($result && mysqli_num_rows($result) > 0) {
     $row = mysqli_fetch_assoc($result);
     // Parse data_tambahan from JSON string
     $data_tambahan = json_decode($row['data_tambahan'], true);
+    if (is_array($data_tambahan)) {
+        unset($data_tambahan['id']);
+        unset($data_tambahan['password']);
+        unset($data_tambahan['remember_token']);
+        unset($data_tambahan['role']);
+    }
     
     api_response([
         "success" => true,
         "message" => "Detail pengajuan berhasil diambil",
         "data" => [
-            "id" => $row['id'],
-            "user_id" => $row['user_id'],
+            "id" => (int)$row['id'],
+            "user_id" => (int)$row['user_id'],
             "jenis_surat" => $row['jenis_surat'],
             "status" => $row['status'],
             "nomor_surat" => $row['nomor_surat'] ?? '',

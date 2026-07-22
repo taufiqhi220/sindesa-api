@@ -14,8 +14,20 @@
  * FIX: Letakkan $uploaded_paths TERAKHIR agar selalu menang
  */
 function mega_merge_data($full_user, $uploaded_paths, $existing_data_arr) {
-    // Mulai dari data user
-    $merged = $full_user ?? [];
+    // Bersihkan kolom sistem/private user agar tidak mencemari JSON data_tambahan
+    // (PENTING: Jangan biarkan $full_user['id'] menimpa ID pengajuan!)
+    $user_clean = $full_user ?? [];
+    unset($user_clean['id']);
+    unset($user_clean['password']);
+    unset($user_clean['remember_token']);
+    unset($user_clean['email_verified_at']);
+    unset($user_clean['created_at']);
+    unset($user_clean['updated_at']);
+    unset($user_clean['role']);
+    unset($user_clean['kantor_id']);
+    
+    // Mulai dari data user yang sudah dibersihkan
+    $merged = $user_clean;
     
     // Tambah data form (bisa timpa data user)
     // PENTING: array (termasuk array kosong []) selalu dipertahankan karena bisa berupa

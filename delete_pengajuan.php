@@ -3,18 +3,13 @@
  * SINDESA API — Hapus / Batalkan Pengajuan Surat
  * Keamanan: Hanya bisa dihapus jika status masih 'menunggu_verifikasi'
  */
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, GET, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Access-Control-Allow-Headers, Authorization, X-Requested-With");
-header('Content-Type: application/json; charset=utf-8');
+require_once 'api_bootstrap.php';
+require_once 'db_config.php';
+require_once 'upload_helper.php';
 
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
-    exit();
+if (!$conn) {
+    api_error("Koneksi database gagal", 500);
 }
-
-require_once __DIR__ . '/db_config.php';
-require_once __DIR__ . '/upload_helper.php';
 
 $raw_input = file_get_contents('php://input');
 $json_input = json_decode($raw_input, true) ?? [];
@@ -32,7 +27,8 @@ if ($id <= 0) {
 }
 
 // Cari pengajuan surat berdasarkan ID
-$res = mysqli_query($conn, "SELECT id, status, data_tambahan FROM pengajuan_surats WHERE id = '$id' LIMIT 1");
+$id_safe = (int)$id;
+$res = mysqli_query($conn, "SELECT id, status, data_tambahan FROM pengajuan_surats WHERE id = $id_safe LIMIT 1");
 if (!$res || mysqli_num_rows($res) == 0) {
     api_response(["success" => false, "message" => "Pengajuan surat dengan ID $id tidak ditemukan"]);
 }
@@ -42,7 +38,7 @@ $raw_status = $pengajuan['status'] ?? '';
 $status_clean = strtolower(trim(str_replace([' ', '-'], '_', $raw_status)));
 
 // Keamanan: Hanya bisa dihapus jika belum diproses oleh operator (menunggu_verifikasi)
-if ($status_clean === 'menunggu_verifikasi' || $status_clean === 'menunggu' || $status_clean === 'menunggu_verifikasi_operator') {
+if ($status_clean === 'menunggu_verifikasi' || $status_clean === 'menunggu' || $status_clean === 'menunggu_verifikasi_operator' || strpos($status_clean, 'menunggu') !== false) {
     // Hapus file fisik pendukung jika ada
     if (!empty($pengajuan['data_tambahan'])) {
         $data_tambahan = json_decode($pengajuan['data_tambahan'], true) ?? [];
@@ -56,12 +52,12 @@ if ($status_clean === 'menunggu_verifikasi' || $status_clean === 'menunggu' || $
         }
     }
 
-    $del_query = "DELETE FROM pengajuan_surats WHERE id = '$id'";
+    $del_query = "DELETE FROM pengajuan_surats WHERE id = $id_safe";
     if (mysqli_query($conn, $del_query)) {
         api_response(["success" => true, "message" => "Pengajuan surat berhasil dibatalkan"]);
     } else {
         api_response(["success" => false, "message" => "Gagal menghapus pengajuan dari database: " . mysqli_error($conn)]);
     }
 } else {
-    api_response(["success" => false, "message" => "Gagal membatalkan. Status surat ('$raw_status') sudah mulai diproses oleh petugas."]);
+    api_response(["success" => false, "message" => "Gagal membatalkan. Status surat saat ini: '$raw_status'. Surat sudah mulai diproses oleh petugas."]);
 }

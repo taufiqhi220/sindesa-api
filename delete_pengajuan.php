@@ -16,10 +16,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 require_once __DIR__ . '/db_config.php';
 require_once __DIR__ . '/upload_helper.php';
 
+$raw_input = file_get_contents('php://input');
+$json_input = json_decode($raw_input, true) ?? [];
+
 $id = 0;
 if (!empty($_POST['id'])) $id = (int)$_POST['id'];
 elseif (!empty($_POST['id_pengajuan'])) $id = (int)$_POST['id_pengajuan'];
+elseif (!empty($json_input['id'])) $id = (int)$json_input['id'];
+elseif (!empty($json_input['id_pengajuan'])) $id = (int)$json_input['id_pengajuan'];
 elseif (!empty($_REQUEST['id'])) $id = (int)$_REQUEST['id'];
+elseif (!empty($_REQUEST['id_pengajuan'])) $id = (int)$_REQUEST['id_pengajuan'];
 
 if ($id <= 0) {
     api_response(["success" => false, "message" => "ID pengajuan tidak valid"]);
@@ -28,15 +34,16 @@ if ($id <= 0) {
 // Cari pengajuan surat berdasarkan ID
 $res = mysqli_query($conn, "SELECT id, status, data_tambahan FROM pengajuan_surats WHERE id = '$id' LIMIT 1");
 if (!$res || mysqli_num_rows($res) == 0) {
-    api_response(["success" => false, "message" => "Pengajuan surat tidak ditemukan"]);
+    api_response(["success" => false, "message" => "Pengajuan surat dengan ID $id tidak ditemukan"]);
 }
 
 $pengajuan = mysqli_fetch_assoc($res);
-$status = strtolower($pengajuan['status'] ?? '');
+$raw_status = $pengajuan['status'] ?? '';
+$status_clean = strtolower(trim(str_replace([' ', '-'], '_', $raw_status)));
 
 // Keamanan: Hanya bisa dihapus jika belum diproses oleh operator (menunggu_verifikasi)
-if ($status === 'menunggu_verifikasi' || $status === 'menunggu') {
-    // Opsional: Hapus file fisik pendukung jika ada
+if ($status_clean === 'menunggu_verifikasi' || $status_clean === 'menunggu' || $status_clean === 'menunggu_verifikasi_operator') {
+    // Hapus file fisik pendukung jika ada
     if (!empty($pengajuan['data_tambahan'])) {
         $data_tambahan = json_decode($pengajuan['data_tambahan'], true) ?? [];
         foreach ($data_tambahan as $key => $val) {
@@ -56,5 +63,5 @@ if ($status === 'menunggu_verifikasi' || $status === 'menunggu') {
         api_response(["success" => false, "message" => "Gagal menghapus pengajuan dari database: " . mysqli_error($conn)]);
     }
 } else {
-    api_response(["success" => false, "message" => "Gagal membatalkan. Surat sudah mulai diproses oleh petugas."]);
+    api_response(["success" => false, "message" => "Gagal membatalkan. Status surat ('$raw_status') sudah mulai diproses oleh petugas."]);
 }

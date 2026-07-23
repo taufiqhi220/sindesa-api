@@ -69,6 +69,11 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     }
     $base_user = array_merge($full_user ?? [], $old_data ?? []);
     $mega_merge = mega_merge_data($base_user, $uploaded_paths, $form_data);
+    if (isset($mega_merge['file_pengantar']) && empty($mega_merge['file_pengantar_rt'])) {
+        $mega_merge['file_pengantar_rt'] = $mega_merge['file_pengantar'];
+    } elseif (isset($mega_merge['file_pengantar_rt']) && empty($mega_merge['file_pengantar'])) {
+        $mega_merge['file_pengantar'] = $mega_merge['file_pengantar_rt'];
+    }
     inject_pemohon_pelapor($mega_merge, $full_user);
     $data_tambahan = json_encode($mega_merge, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     // --- END UNIVERSAL AUTOFILL ---

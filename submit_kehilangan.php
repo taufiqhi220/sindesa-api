@@ -34,6 +34,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
         'alamat_pelapor' => $_POST['alamat'] ?? '',
         // Rincian Kehilangan (blade: rincian_hilang, waktu_hilang, lokasi_hilang)
         'rincian_hilang' => $barang,
+        'barang_hilang' => $barang,
         'waktu_hilang' => $_POST['waktu_hilang'] ?? '',
         'lokasi_hilang' => $_POST['lokasi_hilang'] ?? '',
     ];

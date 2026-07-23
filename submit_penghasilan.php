@@ -32,10 +32,13 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
         'agama' => $_POST['agama'] ?? '',
         'pekerjaan' => $_POST['pekerjaan'] ?? '',
         'alamat' => $_POST['alamat'] ?? '',
-        // Rincian Penghasilan & Tanggungan (sesuai blade)
+        // Rincian Penghasilan & Tanggungan (sesuai blade & android)
         'jumlah_penghasilan' => $_POST['jumlah_penghasilan'] ?? $_POST['penghasilan'] ?? '',
-        'jumlah_tanggungan' => $_POST['jumlah_tanggungan'] ?? '',
-        'nama_tanggungan' => $_POST['nama_tanggungan'] ?? '',
+        'penghasilan' => $_POST['jumlah_penghasilan'] ?? $_POST['penghasilan'] ?? '',
+        'jumlah_tanggungan' => $_POST['jumlah_tanggungan'] ?? $_POST['tanggungan'] ?? '',
+        'tanggungan' => $_POST['jumlah_tanggungan'] ?? $_POST['tanggungan'] ?? '',
+        'nama_tanggungan' => $_POST['nama_tanggungan'] ?? $_POST['nama_ditanggung'] ?? '',
+        'nama_ditanggung' => $_POST['nama_tanggungan'] ?? $_POST['nama_ditanggung'] ?? '',
     ];
     
     // --- BEGIN UNIVERSAL AUTOFILL & FILE INJECTOR ---

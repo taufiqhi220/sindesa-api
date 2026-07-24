@@ -68,6 +68,13 @@ function api_error($message, $httpCode = 200) {
 }
 
 /**
+ * Google reCAPTCHA v3 Secret Key untuk Verifikasi Backend
+ */
+if (!defined('RECAPTCHA_V3_SECRET')) {
+    define('RECAPTCHA_V3_SECRET', '6Lex9WItAAAAACH-V2qDWdo4ZbnS860sEPycshm3');
+}
+
+/**
  * URL Website Laravel Sindesa (tempat file storage foto profil disajikan)
  * Sesuaikan dengan domain website Laravel Anda.
  * 

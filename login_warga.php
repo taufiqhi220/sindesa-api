@@ -77,7 +77,7 @@ if ($result->num_rows > 0) {
                     "kecamatan_code" => $user['kecamatan'] ?? '',
                     "kelurahan_desa_code" => $user['kelurahan_desa'] ?? '',
                     "no_hp" => $noHpFinal,
-                    "foto_profil" => $user['foto_profil'] ?? '',
+                    "foto_profil" => get_foto_profil_url($user['foto_profil'] ?? ''),
                     "status" => $user['status'] ?? 'inactive'
                 ],
                 "token" => "token_dummy_testing"

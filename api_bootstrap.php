@@ -66,3 +66,51 @@ function api_response($data, $httpCode = 200) {
 function api_error($message, $httpCode = 200) {
     api_response(["success" => false, "message" => $message], $httpCode);
 }
+
+/**
+ * URL Website Laravel Sindesa (tempat file storage foto profil disajikan)
+ * Sesuaikan dengan domain website Laravel Anda.
+ * 
+ * PENTING: URL ini HARUS diakhiri dengan / (slash)
+ */
+if (!defined('WEBSITE_URL')) {
+    // Auto-detect: coba ambil dari env atau gunakan default
+    // Prioritas: environment variable > auto-detect dari API URL > fallback
+    $apiHost = $_SERVER['HTTP_HOST'] ?? '';
+    if (strpos($apiHost, 'api.') === 0) {
+        // Jika API di api.domain.com, website kemungkinan di domain.com atau app.domain.com
+        $webHost = substr($apiHost, 4); // Hapus 'api.' prefix
+        define('WEBSITE_URL', 'https://' . $webHost . '/');
+    } else {
+        // Fallback: gunakan domain yang sama dengan API
+        $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+        define('WEBSITE_URL', $scheme . '://' . $apiHost . '/');
+    }
+}
+
+/**
+ * Helper: Konversi path foto_profil relatif menjadi URL lengkap yang bisa diakses
+ * 
+ * @param string|null $fotoPath Path relatif dari database (misal: "profil/PROFIL_123.jpg")
+ * @return string URL lengkap atau string kosong
+ */
+function get_foto_profil_url($fotoPath) {
+    if (empty($fotoPath)) return '';
+    
+    // Jika sudah berupa URL lengkap, kembalikan apa adanya
+    if (strpos($fotoPath, 'http://') === 0 || strpos($fotoPath, 'https://') === 0) {
+        return $fotoPath;
+    }
+    
+    // Bersihkan prefix yang mungkin tersimpan di DB
+    $cleanPath = ltrim($fotoPath, '/');
+    if (strpos($cleanPath, 'storage/app/public/') === 0) {
+        $cleanPath = substr($cleanPath, strlen('storage/app/public/'));
+    } elseif (strpos($cleanPath, 'public/storage/') === 0) {
+        $cleanPath = substr($cleanPath, strlen('public/storage/'));
+    } elseif (strpos($cleanPath, 'storage/') === 0) {
+        $cleanPath = substr($cleanPath, strlen('storage/'));
+    }
+    
+    return WEBSITE_URL . 'storage/' . $cleanPath;
+}

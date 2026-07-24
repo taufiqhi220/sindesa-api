@@ -150,7 +150,7 @@ if ($file_key !== null) {
 }
 
 if (empty($fields)) {
-    api_response(["success" => true, "message" => "Tidak ada perubahan data", "foto_profil" => $user['foto_profil'] ?? '']);
+    api_response(["success" => true, "message" => "Tidak ada perubahan data", "foto_profil" => get_foto_profil_url($user['foto_profil'] ?? '')]);
 }
 
 $sql = "UPDATE users SET " . implode(", ", $fields) . " WHERE id = '$user_id'";
@@ -161,7 +161,7 @@ if (mysqli_query($conn, $sql)) {
     api_response([
         "success" => true,
         "message" => "Profil berhasil diperbarui",
-        "foto_profil" => $fresh_user['foto_profil'] ?? ''
+        "foto_profil" => get_foto_profil_url($fresh_user['foto_profil'] ?? '')
     ]);
 } else {
     api_error("Gagal memperbarui profil: " . mysqli_error($conn), 500);

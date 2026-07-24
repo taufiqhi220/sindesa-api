@@ -22,10 +22,40 @@ $kelurahan_desa     = $_POST['kelurahan_desa'] ?? '';
 $no_hp              = $_POST['no_hp'] ?? '';
 $email              = $_POST['email'] ?? '';
 $password           = $_POST['password'] ?? '';
+$recaptcha_token    = $_POST['recaptcha_token'] ?? $_POST['g-recaptcha-response'] ?? '';
 
 // 3. Validasi Dasar
 if (empty($nik) || empty($nama) || empty($password) || empty($email)) {
     api_error("NIK, Nama, Email, dan Password wajib diisi");
+}
+
+// 3.1 Verifikasi Google reCAPTCHA v3 (jika secret key terkonfigurasi)
+$recaptcha_secret = defined('RECAPTCHA_V3_SECRET') ? RECAPTCHA_V3_SECRET : '';
+if (!empty($recaptcha_token) && strpos($recaptcha_token, 'mock_') !== 0 && !empty($recaptcha_secret)) {
+    $verify_url = "https://www.google.com/recaptcha/api/siteverify";
+    $post_data = http_build_query([
+        'secret'   => $recaptcha_secret,
+        'response' => $recaptcha_token,
+        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+    ]);
+
+    $opts = [
+        'http' => [
+            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method'  => 'POST',
+            'content' => $post_data,
+            'timeout' => 5
+        ]
+    ];
+    $context  = stream_context_create($opts);
+    $verify_res = @file_get_contents($verify_url, false, $context);
+    
+    if ($verify_res !== false) {
+        $result = json_decode($verify_res, true);
+        if (empty($result['success']) || (isset($result['score']) && $result['score'] < 0.5)) {
+            api_error("Verifikasi Captcha gagal. Terdeteksi aktivitas mencurigakan.", 400);
+        }
+    }
 }
 
 // 4. Cek apakah NIK atau Email sudah terdaftar

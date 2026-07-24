@@ -125,16 +125,25 @@ if (isset($_POST['password']) && !empty($_POST['password'])) {
 $file_key = null;
 $possible_keys = ['foto_profil', 'foto', 'avatar', 'berkas_foto', 'image'];
 foreach ($possible_keys as $k) {
-    if (isset($_FILES[$k]) && $_FILES[$k]['error'] === UPLOAD_ERR_OK) {
-        $file_key = $k;
-        break;
+    if (isset($_FILES[$k])) {
+        if ($_FILES[$k]['error'] === UPLOAD_ERR_OK) {
+            $file_key = $k;
+            break;
+        } elseif ($_FILES[$k]['error'] !== UPLOAD_ERR_NO_FILE) {
+            $errCode = $_FILES[$k]['error'];
+            $errMsg = "Gagal mengunggah foto profil (Error $errCode).";
+            if ($errCode === UPLOAD_ERR_INI_SIZE || $errCode === UPLOAD_ERR_FORM_SIZE) {
+                $errMsg = "Ukuran foto profil terlalu besar (Max 5MB).";
+            }
+            api_error($errMsg, 400);
+        }
     }
 }
 
 if ($file_key !== null) {
     $upload_dir = get_upload_dir('profil');
     $safe_nik = preg_replace('/[^0-9]/', '', $nik);
-    $foto_path = process_upload($file_key, 'PROFIL', $safe_nik, $upload_dir);
+    $foto_path = process_upload($file_key, 'PROFIL', $safe_nik, $upload_dir, 'profil');
     if (!empty($foto_path)) {
         $fields[] = "foto_profil = '$foto_path'";
     }

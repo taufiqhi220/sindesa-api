@@ -8,13 +8,14 @@
 function get_upload_dir($subfolder = 'pengajuan') {
     $sub = trim($subfolder, '/') . '/';
     $candidates = [
-        "../../storage/app/public/",        // Jika API di sindesa-app/public/api.domain.com/
-        "../storage/app/public/",           // Jika API di sindesa-app/public_api/
-        "../../../storage/app/public/",    // Jika API di subfolder lebih dalam
+        "../storage/app/public/",
+        "../../storage/app/public/",
+        "../../../storage/app/public/",
         "/home/sindesa/sindesa-app/storage/app/public/",
         "../sindesa-app/storage/app/public/",
         "../sindesa/storage/app/public/",
-        "./uploads/"
+        __DIR__ . "/storage/",
+        __DIR__ . "/uploads/"
     ];
     foreach ($candidates as $base) {
         if (is_dir($base)) {
@@ -23,12 +24,13 @@ function get_upload_dir($subfolder = 'pengajuan') {
             return $dir;
         }
     }
-    $fallback = "../../storage/app/public/" . $sub;
-    if (!is_dir($fallback)) @mkdir($fallback, 0777, true);
-    return $fallback;
+    // Fallback lokal di direktori API (mencegah membuat folder di luar web root)
+    $dir = __DIR__ . '/storage/' . $sub;
+    if (!is_dir($dir)) @mkdir($dir, 0777, true);
+    return $dir;
 }
 
-function process_upload($file_key, $prefix, $nik, $upload_dir) {
+function process_upload($file_key, $prefix, $nik, $upload_dir, $subfolder = 'pengajuan') {
     if (!isset($_FILES[$file_key]) || $_FILES[$file_key]['error'] != 0) {
         // Log error code untuk debug
         if (isset($_FILES[$file_key]['error']) && $_FILES[$file_key]['error'] != 4) {
@@ -112,5 +114,5 @@ function process_upload($file_key, $prefix, $nik, $upload_dir) {
     error_log("upload_helper: Berhasil upload $file_key → $dest");
 
     // Return path relatif untuk disimpan di DB (relatif terhadap storage/app/public/)
-    return "pengajuan/" . $filename;
+    return trim($subfolder, '/') . '/' . $filename;
 }

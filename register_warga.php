@@ -29,33 +29,39 @@ if (empty($nik) || empty($nama) || empty($password) || empty($email)) {
     api_error("NIK, Nama, Email, dan Password wajib diisi");
 }
 
-// 3.1 Verifikasi Google reCAPTCHA v3 (jika secret key terkonfigurasi)
-$recaptcha_secret = defined('RECAPTCHA_V3_SECRET') ? RECAPTCHA_V3_SECRET : '';
-if (!empty($recaptcha_token) && strpos($recaptcha_token, 'mock_') !== 0 && !empty($recaptcha_secret)) {
-    $verify_url = "https://www.google.com/recaptcha/api/siteverify";
-    $post_data = http_build_query([
-        'secret'   => $recaptcha_secret,
-        'response' => $recaptcha_token,
-        'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
-    ]);
+// 3.1 Verifikasi Wajib Google reCAPTCHA
+$recaptcha_secret = defined('RECAPTCHA_V3_SECRET') ? RECAPTCHA_V3_SECRET : '6Lex9WItAAAAACH-V2qDWdo4ZbnS860sEPycshm3';
 
-    $opts = [
-        'http' => [
-            'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method'  => 'POST',
-            'content' => $post_data,
-            'timeout' => 5
-        ]
-    ];
-    $context  = stream_context_create($opts);
-    $verify_res = @file_get_contents($verify_url, false, $context);
-    
-    if ($verify_res !== false) {
-        $result = json_decode($verify_res, true);
-        if (empty($result['success']) || (isset($result['score']) && $result['score'] < 0.5)) {
-            api_error("Verifikasi Captcha gagal. Terdeteksi aktivitas mencurigakan.", 400);
-        }
-    }
+if (empty($recaptcha_token)) {
+    api_error("Verifikasi reCAPTCHA wajib diselesaikan", 400);
+}
+
+$verify_url = "https://www.google.com/recaptcha/api/siteverify";
+$post_data = http_build_query([
+    'secret'   => $recaptcha_secret,
+    'response' => $recaptcha_token,
+    'remoteip' => $_SERVER['REMOTE_ADDR'] ?? ''
+]);
+
+$opts = [
+    'http' => [
+        'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
+        'method'  => 'POST',
+        'content' => $post_data,
+        'timeout' => 10
+    ]
+];
+$context  = stream_context_create($opts);
+$verify_res = @file_get_contents($verify_url, false, $context);
+
+if ($verify_res === false) {
+    api_error("Gagal terhubung ke server verifikasi reCAPTCHA Google", 500);
+}
+
+$result = json_decode($verify_res, true);
+if (empty($result['success'])) {
+    $err_details = isset($result['error-codes']) ? implode(', ', $result['error-codes']) : 'Token tidak valid';
+    api_error("Verifikasi Captcha gagal. Silakan centang ulang 'Saya bukan robot'.", 400);
 }
 
 // 4. Cek apakah NIK atau Email sudah terdaftar

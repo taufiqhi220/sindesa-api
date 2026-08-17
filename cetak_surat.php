@@ -149,6 +149,36 @@ if (isset($kades) && is_object($kades) && !empty($kades->ttd_path)) {
     }
 }
 
+// Smart Scan: Jika ttd_base64 masih kosong, scan folder spesimen ttd kades apapun yang ada di storage server
+if (isset($kades) && is_object($kades) && empty($kades->ttd_base64)) {
+    $scanDirs = [
+        $laravelPath . '/storage/app/public/ttd_kades',
+        $laravelPath . '/storage/app/public/ttd',
+        '/home/sindesa/sindesa-app/storage/app/public/ttd_kades',
+        '/home/sindesa/sindesa-app/storage/app/public/ttd',
+        $laravelPath . '/public/storage/ttd_kades',
+        $laravelPath . '/public/storage/ttd',
+    ];
+    foreach ($scanDirs as $dir) {
+        if (is_dir($dir)) {
+            $files = @scandir($dir);
+            if ($files) {
+                foreach ($files as $f) {
+                    if ($f !== '.' && $f !== '..' && !str_starts_with($f, '.')) {
+                        $fPath = $dir . '/' . $f;
+                        if (is_file($fPath)) {
+                            $mime = mime_content_type($fPath) ?: 'image/png';
+                            $kades->ttd_base64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($fPath));
+                            $kades->ttd_path = basename($dir) . '/' . $f;
+                            break 2;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 $viewName = str_replace(['pengantar_', 'keterangan_', '_'], ['', '', '-'], $surat->jenis_surat);
 $viewPath = 'pdf.' . $viewName;
 

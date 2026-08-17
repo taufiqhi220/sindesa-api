@@ -1,4 +1,11 @@
 <?php
+/**
+ * SINDESA API — Get Profil
+ * Endpoint: GET/POST /get_profil.php
+ * 
+ * Mengambil data profil user berdasarkan token autentikasi.
+ * SECURITY: NIK tidak lagi digunakan sebagai parameter (Guideline §5).
+ */
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
@@ -6,13 +13,10 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-$nik = isset($_REQUEST['nik']) ? mysqli_real_escape_string($conn, trim($_REQUEST['nik'])) : '';
+// Autentikasi wajib — identifikasi user dari Bearer token
+$auth_user_id = require_auth($conn);
 
-if (empty($nik)) {
-    api_error("NIK tidak ditemukan");
-}
-
-// Ambil data profil user berdasarkan NIK dan join ke tabel wilayah laravolt
+// Ambil data profil user berdasarkan user_id dari token (bukan NIK)
 $sql = "SELECT u.name, u.nik, u.no_kk, u.email, u.agama, u.jenis_kelamin, u.tempat_lahir, u.tanggal_lahir,
                u.status_perkawinan, u.pekerjaan, u.kewarganegaraan, u.alamat_lengkap, u.rt_rw,
                u.provinsi, u.kota, u.kecamatan, u.kelurahan_desa, u.no_hp, u.phone, u.foto_profil, u.status,
@@ -25,12 +29,15 @@ $sql = "SELECT u.name, u.nik, u.no_kk, u.email, u.agama, u.jenis_kelamin, u.temp
         LEFT JOIN indonesia_cities c ON u.kota = c.code
         LEFT JOIN indonesia_districts d ON u.kecamatan = d.code
         LEFT JOIN indonesia_villages v ON u.kelurahan_desa = v.code
-        WHERE u.nik = '$nik' LIMIT 1";
+        WHERE u.id = ? LIMIT 1";
 
-$result = mysqli_query($conn, $sql);
+$stmt = $conn->prepare($sql);
+$stmt->bind_param("i", $auth_user_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-if ($result && mysqli_num_rows($result) > 0) {
-    $user = mysqli_fetch_assoc($result);
+if ($result && $result->num_rows > 0) {
+    $user = $result->fetch_assoc();
     
     // Gunakan no_hp jika ada, jika kosong gunakan phone dari web
     $noHpFinal = !empty($user['no_hp']) ? $user['no_hp'] : ($user['phone'] ?? '');
@@ -46,6 +53,7 @@ if ($result && mysqli_num_rows($result) > 0) {
         "message" => "Profil ditemukan",
         "data" => [
             "user" => [
+                "id"                => (int)$auth_user_id,
                 "nama"              => $user['name'] ?? '',
                 "nik"               => $user['nik'] ?? '',
                 "no_kk"             => $user['no_kk'] ?? '',
@@ -74,7 +82,8 @@ if ($result && mysqli_num_rows($result) > 0) {
         ]
     ]);
 } else {
-    api_error("Profil dengan NIK $nik tidak ditemukan");
+    api_error("Profil tidak ditemukan");
 }
 
+$stmt->close();
 mysqli_close($conn);

@@ -1,4 +1,10 @@
 <?php
+/**
+ * SINDESA API — Get Detail Pengajuan
+ * Endpoint: GET /get_detail_pengajuan.php?id=xxx
+ * 
+ * SECURITY: Memerlukan token autentikasi + ownership check (IDOR protection).
+ */
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
@@ -6,17 +12,23 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
+// Autentikasi wajib
+$auth_user_id = require_auth($conn);
+
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 if ($id === 0) {
     api_error("ID Pengajuan tidak valid");
 }
 
-$sql = "SELECT * FROM pengajuan_surats WHERE id = $id LIMIT 1";
-$result = mysqli_query($conn, $sql);
+// Gunakan prepared statement + ownership check
+$stmt = $conn->prepare("SELECT * FROM pengajuan_surats WHERE id = ? AND user_id = ? LIMIT 1");
+$stmt->bind_param("ii", $id, $auth_user_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
-if ($result && mysqli_num_rows($result) > 0) {
-    $row = mysqli_fetch_assoc($result);
+if ($result && $result->num_rows > 0) {
+    $row = $result->fetch_assoc();
     // Parse data_tambahan from JSON string
     $data_tambahan = json_decode($row['data_tambahan'], true);
     if (is_array($data_tambahan)) {
@@ -44,7 +56,8 @@ if ($result && mysqli_num_rows($result) > 0) {
         ]
     ]);
 } else {
-    api_error("Pengajuan tidak ditemukan");
+    api_error("Pengajuan tidak ditemukan atau Anda tidak memiliki akses");
 }
 
+$stmt->close();
 mysqli_close($conn);

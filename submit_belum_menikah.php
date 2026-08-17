@@ -8,6 +8,10 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
+
+// Autentikasi wajib — identifikasi user dari Bearer token (Guideline §1)
+$auth_user_id = require_auth($conn);
+
 $nik = $_POST['nik'] ?? '';
 if (empty($nik)) {
     api_error("NIK tidak boleh kosong");
@@ -61,7 +65,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     // Jika sedang edit, ambil file path yang lama agar tidak hilang jika tidak upload ulang
     $old_data = [];
     if ($edit_id > 0) {
-        $res_old = mysqli_query($conn, "SELECT data_tambahan FROM pengajuan_surats WHERE id = '$edit_id' LIMIT 1");
+        $res_old = mysqli_query($conn, "SELECT data_tambahan FROM pengajuan_surats WHERE id = '$edit_id' AND user_id = '$auth_user_id' LIMIT 1");
         if ($res_old && mysqli_num_rows($res_old) > 0) {
             $old_data = json_decode(mysqli_fetch_assoc($res_old)['data_tambahan'], true) ?? [];
             foreach ($old_data as $key => $val) {
@@ -85,7 +89,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
         $sql = "UPDATE pengajuan_surats SET 
                 data_tambahan = '$data_tambahan_escaped',
                 updated_at = NOW()
-                WHERE id = '$edit_id'";
+                WHERE id = '$edit_id' AND user_id = '$auth_user_id'";
         if (mysqli_query($conn, $sql)) {
             api_response(["success" => true, "message" => "Pengajuan Surat Belum Menikah berhasil diperbarui"]);
         } else {

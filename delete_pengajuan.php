@@ -1,7 +1,10 @@
 <?php
 /**
  * SINDESA API — Hapus / Batalkan Pengajuan Surat
- * Keamanan: Hanya bisa dihapus jika status masih 'menunggu_verifikasi'
+ * Keamanan: 
+ * - Memerlukan token autentikasi
+ * - Ownership check (user hanya bisa hapus pengajuan miliknya)
+ * - Hanya bisa dihapus jika status masih 'menunggu_verifikasi'
  */
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
@@ -10,6 +13,9 @@ require_once 'upload_helper.php';
 if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
+
+// Autentikasi wajib
+$auth_user_id = require_auth($conn);
 
 $raw_input = file_get_contents('php://input');
 $json_input = json_decode($raw_input, true) ?? [];
@@ -26,14 +32,19 @@ if ($id <= 0) {
     api_response(["success" => false, "message" => "ID pengajuan tidak valid"]);
 }
 
-// Cari pengajuan surat berdasarkan ID
-$id_safe = (int)$id;
-$res = mysqli_query($conn, "SELECT id, status, data_tambahan FROM pengajuan_surats WHERE id = $id_safe LIMIT 1");
-if (!$res || mysqli_num_rows($res) == 0) {
-    api_response(["success" => false, "message" => "Pengajuan surat dengan ID $id tidak ditemukan"]);
+// Cari pengajuan surat berdasarkan ID + ownership check (IDOR protection)
+$stmt = $conn->prepare("SELECT id, status, data_tambahan FROM pengajuan_surats WHERE id = ? AND user_id = ? LIMIT 1");
+$stmt->bind_param("ii", $id, $auth_user_id);
+$stmt->execute();
+$res = $stmt->get_result();
+
+if (!$res || $res->num_rows == 0) {
+    api_response(["success" => false, "message" => "Pengajuan surat tidak ditemukan atau Anda tidak memiliki akses"]);
 }
 
-$pengajuan = mysqli_fetch_assoc($res);
+$pengajuan = $res->fetch_assoc();
+$stmt->close();
+
 $raw_status = $pengajuan['status'] ?? '';
 $status_clean = strtolower(trim(str_replace([' ', '-'], '_', $raw_status)));
 
@@ -52,12 +63,17 @@ if ($status_clean === 'menunggu_verifikasi' || $status_clean === 'menunggu' || $
         }
     }
 
-    $del_query = "DELETE FROM pengajuan_surats WHERE id = $id_safe";
-    if (mysqli_query($conn, $del_query)) {
+    $del_stmt = $conn->prepare("DELETE FROM pengajuan_surats WHERE id = ? AND user_id = ?");
+    $del_stmt->bind_param("ii", $id, $auth_user_id);
+    if ($del_stmt->execute()) {
+        $del_stmt->close();
         api_response(["success" => true, "message" => "Pengajuan surat berhasil dibatalkan"]);
     } else {
-        api_response(["success" => false, "message" => "Gagal menghapus pengajuan dari database: " . mysqli_error($conn)]);
+        $del_stmt->close();
+        api_response(["success" => false, "message" => "Gagal menghapus pengajuan dari database: " . $conn->error]);
     }
 } else {
     api_response(["success" => false, "message" => "Gagal membatalkan. Status surat saat ini: '$raw_status'. Surat sudah mulai diproses oleh petugas."]);
 }
+
+mysqli_close($conn);

@@ -8,6 +8,10 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
+
+// Autentikasi wajib — identifikasi user dari Bearer token (Guideline §1)
+$auth_user_id = require_auth($conn);
+
 // NIK pengaju diutamakan dari user yang login (nik/nik_pemohon), baru fallback ke nik_dok1
 $nik = trim($_POST['nik'] ?? $_POST['nik_pemohon'] ?? $_POST['nik_dok1'] ?? $_REQUEST['nik'] ?? '');
 if (empty($nik)) {
@@ -16,8 +20,8 @@ if (empty($nik)) {
 
 $upload_dir = get_upload_dir('pengajuan');
 
-$nik_safe = mysqli_real_escape_string($conn, $nik);
-$res_user = mysqli_query($conn, "SELECT id FROM users WHERE nik = '$nik_safe' LIMIT 1");
+// User diidentifikasi dari token, bukan NIK POST
+$res_user = mysqli_query($conn, "SELECT id FROM users WHERE id = '$auth_user_id' LIMIT 1");
 if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     $user_id = (int)$user['id'];
     $token = strtoupper(bin2hex(random_bytes(8)));
@@ -55,7 +59,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
     
     $old_data = [];
     if ($edit_id > 0) {
-        $res_old = mysqli_query($conn, "SELECT data_tambahan FROM pengajuan_surats WHERE id = '$edit_id' LIMIT 1");
+        $res_old = mysqli_query($conn, "SELECT data_tambahan FROM pengajuan_surats WHERE id = '$edit_id' AND user_id = '$auth_user_id' LIMIT 1");
         if ($res_old && mysqli_num_rows($res_old) > 0) {
             $old_data = json_decode(mysqli_fetch_assoc($res_old)['data_tambahan'], true) ?? [];
             foreach ($old_data as $key => $val) {
@@ -81,7 +85,7 @@ if ($res_user && $user = mysqli_fetch_assoc($res_user)) {
         $sql = "UPDATE pengajuan_surats SET 
                 data_tambahan = '$data_tambahan_escaped',
                 updated_at = NOW()
-                WHERE id = '$edit_id'";
+                WHERE id = '$edit_id' AND user_id = '$auth_user_id'";
     } else {
         $sql = "INSERT INTO pengajuan_surats (user_id, jenis_surat, keperluan, token_verifikasi, status, data_tambahan, created_at, updated_at)
             VALUES ('$user_id', 'keterangan_beda_nama', '$keperluan', '$token', 'menunggu_verifikasi', '$data_tambahan_escaped', NOW(), NOW())";

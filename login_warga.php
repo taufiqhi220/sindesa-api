@@ -1,4 +1,11 @@
 <?php
+/**
+ * SINDESA API — Login Warga
+ * Endpoint: POST /login_warga.php
+ * 
+ * Autentikasi warga dan generate token API (stateful DB-backed).
+ * Endpoint ini TIDAK memerlukan token (publik).
+ */
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
@@ -38,8 +45,16 @@ $result = $stmt->get_result();
 if ($result->num_rows > 0) {
     $user = $result->fetch_assoc();
     
-    // Verifikasi Password (Mendukung Hash Bcrypt Laravel & Plain Text untuk Testing)
-    if (password_verify($password, $user['password']) || $password == $user['password']) {
+    // Verifikasi Password — HANYA mendukung Hash Bcrypt Laravel
+    // SECURITY: Plain-text password fallback dihapus (Guideline §1)
+    if (password_verify($password, $user['password'])) {
+        
+        // Generate token API yang valid (stateful DB-backed, TTL 15 menit)
+        $token = generate_api_token($conn, (int)$user['id']);
+        
+        if (empty($token)) {
+            api_error("Gagal membuat sesi login. Silakan coba lagi.", 500);
+        }
         
         // Gunakan no_hp jika ada, jika kosong gunakan phone dari web
         $noHpFinal = !empty($user['no_hp']) ? $user['no_hp'] : ($user['phone'] ?? '');
@@ -55,6 +70,7 @@ if ($result->num_rows > 0) {
             "message" => "Login Berhasil",
             "data" => [
                 "user" => [
+                    "id"    => (int)$user['id'],
                     "nama"  => $user['name'],
                     "nik"   => $user['nik'], 
                     "email" => $user['email'],
@@ -80,7 +96,8 @@ if ($result->num_rows > 0) {
                     "foto_profil" => get_foto_profil_url($user['foto_profil'] ?? ''),
                     "status" => $user['status'] ?? 'inactive'
                 ],
-                "token" => "token_dummy_testing"
+                "token" => $token,
+                "token_expires_in" => API_TOKEN_TTL_SECONDS
             ]
         ]);
     } else {

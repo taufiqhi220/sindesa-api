@@ -2,6 +2,9 @@
 /**
  * SINDESA API — Update Profil
  * Endpoint: POST /update_profil.php
+ * 
+ * SECURITY: User diidentifikasi dari Bearer token, bukan POST nik.
+ * User hanya bisa update profil sendiri (IDOR protection — Guideline §1).
  */
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
@@ -11,19 +14,22 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-$nik = $_POST['nik'] ?? $_POST['new_nik'] ?? '';
-if (empty($nik)) {
-    api_error("NIK tidak boleh kosong");
-}
+// Autentikasi wajib — identifikasi user dari Bearer token
+$auth_user_id = require_auth($conn);
 
-// 1. Ambil data user yang ada
-$nik_safe = mysqli_real_escape_string($conn, $nik);
-$res_user = mysqli_query($conn, "SELECT * FROM users WHERE nik = '$nik_safe' LIMIT 1");
-if (!$res_user || mysqli_num_rows($res_user) == 0) {
-    api_error("User dengan NIK $nik tidak ditemukan");
+// 1. Ambil data user yang ada berdasarkan token (bukan NIK dari POST)
+$res_user = $conn->prepare("SELECT * FROM users WHERE id = ? LIMIT 1");
+$res_user->bind_param("i", $auth_user_id);
+$res_user->execute();
+$result_user = $res_user->get_result();
+
+if (!$result_user || $result_user->num_rows == 0) {
+    api_error("User tidak ditemukan");
 }
-$user = mysqli_fetch_assoc($res_user);
+$user = $result_user->fetch_assoc();
 $user_id = (int)$user['id'];
+$nik = $user['nik'];
+$res_user->close();
 
 // 2. Daftar field teks yang akan diupdate secara dinamis (hanya yang dikirim dari aplikasi)
 $fields = [];

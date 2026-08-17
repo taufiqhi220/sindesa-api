@@ -6,19 +6,19 @@
  * Cara kerja: Redirect ke URL Laravel yang menghasilkan PDF stream
  * 
  * Mobile app akan membuka URL ini di browser untuk download/view PDF
+ * SECURITY: Memerlukan token auth + ownership check
  */
-error_reporting(0);
-ini_set('display_errors', 0);
+require_once 'api_bootstrap.php';
+require_once 'db_config.php';
 
-// CORS headers (cetak_surat output PDF, bukan JSON, jadi tidak pakai api_bootstrap.php sepenuhnya)
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, Authorization');
-
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
-    http_response_code(200);
+if (!$conn) {
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(["success" => false, "message" => "Koneksi database gagal"]);
     exit;
 }
+
+// Autentikasi wajib
+$auth_user_id = require_auth($conn);
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
@@ -28,16 +28,11 @@ if ($id === 0) {
     exit;
 }
 
-// Verifikasi bahwa surat sudah berstatus selesai
-require_once 'db_config.php';
-if (!$conn) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(["success" => false, "message" => "Koneksi database gagal"]);
-    exit;
-}
-
-$sql = "SELECT id, status, jenis_surat, nomor_surat FROM pengajuan_surats WHERE id = $id LIMIT 1";
-$result = mysqli_query($conn, $sql);
+// Verifikasi bahwa surat sudah berstatus selesai + ownership check
+$stmt = $conn->prepare("SELECT id, status, jenis_surat, nomor_surat FROM pengajuan_surats WHERE id = ? AND user_id = ? LIMIT 1");
+$stmt->bind_param("ii", $id, $auth_user_id);
+$stmt->execute();
+$result = $stmt->get_result();
 
 if (!$result || mysqli_num_rows($result) === 0) {
     header('Content-Type: application/json; charset=utf-8');

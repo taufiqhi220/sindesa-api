@@ -146,12 +146,7 @@ if (!defined('WEBSITE_URL')) {
 function get_foto_profil_url($fotoPath) {
     if (empty($fotoPath)) return '';
     
-    // Jika sudah berupa URL lengkap, kembalikan apa adanya
-    if (strpos($fotoPath, 'http://') === 0 || strpos($fotoPath, 'https://') === 0) {
-        return $fotoPath;
-    }
-    
-    // Bersihkan prefix yang mungkin tersimpan di DB
+    // Bersihkan nama file
     $cleanPath = ltrim($fotoPath, '/');
     if (strpos($cleanPath, 'storage/app/public/') === 0) {
         $cleanPath = substr($cleanPath, strlen('storage/app/public/'));
@@ -161,7 +156,12 @@ function get_foto_profil_url($fotoPath) {
         $cleanPath = substr($cleanPath, strlen('storage/'));
     }
     
-    return WEBSITE_URL . 'storage/' . $cleanPath;
+    $filename = basename($cleanPath);
+    
+    // Gunakan endpoint API langsung agar tidak terhalang oleh web session cookie redirect di domain utama
+    $scheme = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+    $apiHost = $_SERVER['HTTP_HOST'] ?? 'api.sindesa-buttusawe.com';
+    return $scheme . '://' . $apiHost . '/foto_profil.php?file=' . urlencode($filename);
 }
 
 

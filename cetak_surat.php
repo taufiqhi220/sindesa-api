@@ -98,11 +98,26 @@ $app->bind('path.public', function() use ($laravelPath) {
 $surat = App\Models\PengajuanSurat::with('user')->findOrFail($id);
 $pengaturan = App\Models\PengaturanSurat::first();
 
-$dataTambahan = $surat->data_tambahan ?? [];
-if (isset($dataTambahan['kades_snapshot'])) {
+$dataTambahan = $surat->data_tambahan;
+if (is_string($dataTambahan)) {
+    $dataTambahan = json_decode($dataTambahan, true) ?? [];
+}
+
+if (isset($dataTambahan['kades_snapshot']) && is_array($dataTambahan['kades_snapshot'])) {
     $kades = (object) $dataTambahan['kades_snapshot'];
 } else {
     $kades = App\Models\User::where('role', 'kades')->where('status', 'active')->first();
+}
+
+// Fallback: jika metode_ttd belum terekam di kolom utama, cek dari snapshot atau tentukan otomatis
+if (empty($surat->metode_ttd)) {
+    if (isset($dataTambahan['kades_snapshot']['metode_ttd'])) {
+        $surat->metode_ttd = $dataTambahan['kades_snapshot']['metode_ttd'];
+    } elseif (isset($kades->ttd_path) && !empty($kades->ttd_path)) {
+        $surat->metode_ttd = 'konvensional';
+    } else {
+        $surat->metode_ttd = 'digital';
+    }
 }
 
 $viewName = str_replace(['pengantar_', 'keterangan_', '_'], ['', '', '-'], $surat->jenis_surat);

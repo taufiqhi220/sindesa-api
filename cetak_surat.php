@@ -114,7 +114,10 @@ if (!view()->exists($viewPath)) {
     exit;
 }
 
-$pdf = Barryvdh\DomPDF\Facade\Pdf::loadView($viewPath, compact('surat', 'pengaturan', 'kades'));
+$pdf = Barryvdh\DomPDF\Facade\Pdf::loadView($viewPath, compact('surat', 'pengaturan', 'kades'))
+    ->setPaper('a4', 'portrait')
+    ->setOption('isRemoteEnabled', true)
+    ->setOption('isHtml5ParserEnabled', true);
 $namaFileAman = str_replace(['/', '\\'], '-', $surat->nomor_surat ?? 'Surat');
 
 header('Content-Type: application/pdf');

@@ -120,6 +120,35 @@ if (empty($surat->metode_ttd)) {
     }
 }
 
+// Cari dan encode file tanda tangan Kades ke base64 data URI (kebal terhadap symlink / permission bug)
+if (isset($kades) && is_object($kades) && !empty($kades->ttd_path)) {
+    $rawTtd = $kades->ttd_path;
+    $cleanTtd = ltrim(str_replace(['storage/app/public/', 'public/storage/', 'storage/'], '', $rawTtd), '/');
+    $filename = basename($cleanTtd);
+    
+    $searchPaths = [
+        $laravelPath . '/storage/app/public/' . $cleanTtd,
+        $laravelPath . '/storage/app/public/ttd/' . $filename,
+        $laravelPath . '/storage/app/public/ttd_kades/' . $filename,
+        $laravelPath . '/public/storage/' . $cleanTtd,
+        $laravelPath . '/public/storage/ttd/' . $filename,
+        $laravelPath . '/public/storage/ttd_kades/' . $filename,
+        '/home/sindesa/sindesa-app/storage/app/public/' . $cleanTtd,
+        '/home/sindesa/sindesa-app/storage/app/public/ttd/' . $filename,
+        '/home/sindesa/sindesa-app/storage/app/public/ttd_kades/' . $filename,
+        __DIR__ . '/../../storage/app/public/ttd/' . $filename,
+        __DIR__ . '/../storage/app/public/ttd/' . $filename,
+    ];
+    
+    foreach ($searchPaths as $path) {
+        if (file_exists($path) && is_file($path)) {
+            $mime = mime_content_type($path) ?: 'image/png';
+            $kades->ttd_base64 = 'data:' . $mime . ';base64,' . base64_encode(file_get_contents($path));
+            break;
+        }
+    }
+}
+
 $viewName = str_replace(['pengantar_', 'keterangan_', '_'], ['', '', '-'], $surat->jenis_surat);
 $viewPath = 'pdf.' . $viewName;
 

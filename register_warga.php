@@ -1,6 +1,7 @@
 <?php
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
+require_once 'upload_helper.php';
 
 // 2. Tangkap semua data dari Android (19 Field)
 $nama               = $_POST['nama'] ?? '';
@@ -72,21 +73,15 @@ if ($cek->get_result()->num_rows > 0) {
     api_error("NIK atau Email sudah terdaftar");
 }
 
-// 5. Handle Upload Foto KTP
+// 5. Handle Upload Foto KTP ke Storage Laravel (foto_ktp_warga)
 $foto_ktp_path = "";
-if (isset($_FILES['foto_ktp']) && $_FILES['foto_ktp']['error'] == 0) {
-    $target_dir = "uploads/ktp/";
-    if (!is_dir($target_dir)) {
-        mkdir($target_dir, 0777, true);
-    }
+$file_key = 'foto_ktp';
+if (isset($_FILES[$file_key]) && $_FILES[$file_key]['error'] === UPLOAD_ERR_OK) {
+    $upload_dir = get_upload_dir('foto_ktp_warga');
+    $safe_nik = preg_replace('/[^0-9]/', '', $nik);
+    $foto_ktp_path = process_upload($file_key, 'KTP', $safe_nik, $upload_dir, 'foto_ktp_warga');
 
-    $file_ext = pathinfo($_FILES["foto_ktp"]["name"], PATHINFO_EXTENSION);
-    $new_filename = "KTP_" . $nik . "_" . time() . "." . $file_ext;
-    $target_file = $target_dir . $new_filename;
-
-    if (move_uploaded_file($_FILES["foto_ktp"]["tmp_name"], $target_file)) {
-        $foto_ktp_path = $target_file;
-    } else {
+    if (empty($foto_ktp_path)) {
         api_error("Gagal mengunggah foto KTP");
     }
 } else {

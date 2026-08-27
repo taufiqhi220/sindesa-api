@@ -110,10 +110,11 @@ if (!defined('RECAPTCHA_V3_SECRET')) {
 
 /**
  * Token TTL (Time-To-Live) dalam detik.
- * Default: 15 menit = 900 detik
+ * Default untuk Mobile App: 30 hari = 2.592.000 detik (dengan Sliding Expiration)
+ * Setiap kali aplikasi aktif, token otomatis diperpanjang 30 hari ke depan.
  */
 if (!defined('API_TOKEN_TTL_SECONDS')) {
-    define('API_TOKEN_TTL_SECONDS', 900);
+    define('API_TOKEN_TTL_SECONDS', 2592000); // 30 Hari (2.592.000 detik)
 }
 
 /**

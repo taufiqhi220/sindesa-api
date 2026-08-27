@@ -1,11 +1,21 @@
 <?php
 /**
- * SINDESA API — Get Riwayat Pengajuan
- * Endpoint: GET/POST /get_riwayat.php
+ * =========================================================================================
+ * SINDESA REST API — Endpoint Riwayat Pengajuan Surat (get_riwayat.php)
+ * =========================================================================================
  * 
- * Mengambil riwayat pengajuan surat user berdasarkan token autentikasi.
- * SECURITY: NIK tidak lagi digunakan sebagai parameter (Guideline §5).
+ * FUNGSI UTAMA:
+ * 1. Menampilkan seluruh daftar surat yang pernah diajukan oleh akun warga yang terotentikasi.
+ * 2. Memetakan kode surat (misal: 'pengantar_ktp') menjadi label formal bahasa Indonesia ('Pengantar KTP').
+ * 3. Memetakan status pengerjaan (menunggu_verifikasi, diproses_kades, selesai, ditolak) & metode TTD.
+ * 
+ * PENERAPAN SECURE BY DESIGN:
+ * - Anti-IDOR: Data riwayat HANYA ditarik berdasarkan $auth_user_id dari Bearer Token,
+ *   sehingga seorang warga TIDAK BISA melihat surat milik warga lain.
+ * - Prepared Statement: Menggunakan bind_param untuk melindungi query dari injeksi SQL.
+ * =========================================================================================
  */
+
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
@@ -13,10 +23,15 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-// Autentikasi wajib — identifikasi user dari Bearer token
+// -----------------------------------------------------------------------------------------
+// 1. OTENTIKASI SESI TOKEN (MIDDLEWARE)
+// -----------------------------------------------------------------------------------------
+// Memastikan hanya user dengan token Bearer valid yang dapat mengakses riwayat.
 $auth_user_id = require_auth($conn);
 
-// Mapping jenis_surat snake_case ke nama yang user-friendly untuk Android
+// -----------------------------------------------------------------------------------------
+// 2. PEMETAAN LABEL RESMI JENIS SURAT & STATUS PENGERJAAN
+// -----------------------------------------------------------------------------------------
 $namaJenisSurat = [
     'pengantar_akta_lahir'     => 'Pengantar Akta Lahir',
     'pengantar_ktp'            => 'Pengantar KTP',
@@ -35,7 +50,6 @@ $namaJenisSurat = [
     'keterangan_penghasilan'   => 'Surat Keterangan Penghasilan',
 ];
 
-// Mapping status snake_case ke nama yang user-friendly untuk Android
 $namaStatus = [
     'menunggu_verifikasi' => 'Menunggu Verifikasi',
     'diproses_kades'      => 'Diproses Kepala Desa',
@@ -43,7 +57,7 @@ $namaStatus = [
     'ditolak'             => 'Ditolak',
 ];
 
-// Ambil NIK user untuk pencarian di data_tambahan (backward compatibility)
+// Ambil NIK warga untuk pencocokan data cadangan di kolom JSON data_tambahan
 $res_user_nik = $conn->prepare("SELECT nik FROM users WHERE id = ? LIMIT 1");
 $res_user_nik->bind_param("i", $auth_user_id);
 $res_user_nik->execute();
@@ -54,12 +68,13 @@ if ($nik_result->num_rows > 0) {
 }
 $res_user_nik->close();
 
-// Ambil riwayat berdasarkan user_id ATAU NIK di data_tambahan
+// -----------------------------------------------------------------------------------------
+// 3. EKSEKUSI QUERY RIWAYAT DENGAN PREPARED STATEMENT
+// -----------------------------------------------------------------------------------------
 $sql = "SELECT id, jenis_surat, keperluan, status, nomor_surat, metode_ttd, pesan_penolakan, token_verifikasi, file_surat, created_at, updated_at 
         FROM pengajuan_surats 
         WHERE user_id = ? ";
 
-// Tambah pencarian di data_tambahan jika NIK tersedia
 if (!empty($user_nik)) {
     $nik_like1 = '%"nik":"' . $conn->real_escape_string($user_nik) . '"%';
     $nik_like2 = '%"nik_pemohon":"' . $conn->real_escape_string($user_nik) . '"%';
@@ -81,16 +96,18 @@ if (!$result) {
     api_error("Error Query: " . $conn->error, 500);
 }
 
+// -----------------------------------------------------------------------------------------
+// 4. PARSING HASIL QUERY MENJADI ARRAY DATA JSON
+// -----------------------------------------------------------------------------------------
 $data = [];
 while ($row = $result->fetch_assoc()) {
     $jenis = $row['jenis_surat'] ?? '';
     $status = $row['status'] ?? '';
     
-    // Konversi ke nama yang user-friendly
     $jenisNama = $namaJenisSurat[$jenis] ?? ucwords(str_replace('_', ' ', $jenis));
     $statusNama = $namaStatus[$status] ?? ucwords(str_replace('_', ' ', $status));
     
-    // Buat keterangan dari keperluan atau pesan_penolakan
+    // Keterangan khusus jika status ditolak oleh verifikator
     $keterangan = '';
     if ($status === 'ditolak' && !empty($row['pesan_penolakan'])) {
         $keterangan = 'Ditolak: ' . $row['pesan_penolakan'];
@@ -98,7 +115,7 @@ while ($row = $result->fetch_assoc()) {
         $keterangan = $row['keperluan'];
     }
 
-    // Mapping metode_ttd untuk label yang user-friendly
+    // Label ramah untuk metode penandatanganan (Digital QR / Basah)
     $metode_ttd = $row['metode_ttd'] ?? '';
     $labelTtd = '';
     if (!empty($metode_ttd)) {
@@ -131,6 +148,9 @@ while ($row = $result->fetch_assoc()) {
 $stmt->close();
 mysqli_close($conn);
 
+// -----------------------------------------------------------------------------------------
+// 5. KIRIM RESPON JSON KE ANDROID
+// -----------------------------------------------------------------------------------------
 api_response([
     "success" => true,
     "message" => "Ditemukan " . count($data) . " data",

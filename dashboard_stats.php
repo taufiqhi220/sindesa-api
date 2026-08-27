@@ -1,10 +1,19 @@
 <?php
 /**
- * SINDESA API — Dashboard Stats
- * Endpoint: GET/POST /dashboard_stats.php
+ * =========================================================================================
+ * SINDESA REST API — Endpoint Statistik Dashboard (dashboard_stats.php)
+ * =========================================================================================
  * 
- * SECURITY: User diidentifikasi dari Bearer token (Guideline §5 — NIK tidak di GET param).
+ * FUNGSI UTAMA:
+ * 1. Menghitung jumlah 'Total Surat' yang pernah diajukan oleh akun warga yang login.
+ * 2. Menghitung jumlah 'Surat Sedang Diproses' (status: 'menunggu_verifikasi' atau 'diproses_kades').
+ * 3. Menghitung 2 jenis layanan surat yang paling sering diajukan untuk kartu pintasan cepat di Dashboard.
+ * 
+ * PENERAPAN SECURE BY DESIGN:
+ * - Anti-IDOR: Statistik dihitung secara eksklusif hanya untuk $auth_user_id dari token valid.
+ * =========================================================================================
  */
+
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
@@ -12,10 +21,14 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-// Autentikasi wajib
+// -----------------------------------------------------------------------------------------
+// 1. OTENTIKASI SESI TOKEN (MIDDLEWARE)
+// -----------------------------------------------------------------------------------------
 $auth_user_id = require_auth($conn);
 
-// Ambil NIK user untuk backward compatibility pencarian di data_tambahan
+// -----------------------------------------------------------------------------------------
+// 2. AMBIL NIK WARGA DARI BASIS DATA
+// -----------------------------------------------------------------------------------------
 $res_nik = $conn->prepare("SELECT nik FROM users WHERE id = ? LIMIT 1");
 $res_nik->bind_param("i", $auth_user_id);
 $res_nik->execute();
@@ -33,17 +46,23 @@ if (!empty($nik_clean)) {
 }
 $user_clause .= ")";
 
-// Hitung total pengajuan
+// -----------------------------------------------------------------------------------------
+// 3. HITUNG TOTAL PENGAJUAN SURAT WARGA
+// -----------------------------------------------------------------------------------------
 $sql_total = "SELECT COUNT(id) as total FROM pengajuan_surats WHERE $user_clause";
 $res_total = mysqli_query($conn, $sql_total);
 $total_pengajuan = ($res_total) ? mysqli_fetch_assoc($res_total)['total'] : 0;
 
-// Hitung pengajuan yang sedang diproses (menunggu_verifikasi atau diproses_kades)
+// -----------------------------------------------------------------------------------------
+// 4. HITUNG SURAT YANG SEDANG DALAM PROSES PENGERJAAN
+// -----------------------------------------------------------------------------------------
 $sql_proses = "SELECT COUNT(id) as proses FROM pengajuan_surats WHERE $user_clause AND status IN ('menunggu_verifikasi', 'diproses_kades')";
 $res_proses = mysqli_query($conn, $sql_proses);
 $proses_pengajuan = ($res_proses) ? mysqli_fetch_assoc($res_proses)['proses'] : 0;
 
-// Layanan Sering Digunakan
+// -----------------------------------------------------------------------------------------
+// 5. MENGAMBIL 2 LAYANAN YANG PALING SERING DIGUNAKAN (TOP 2 SERVICES)
+// -----------------------------------------------------------------------------------------
 $sql_sering = "SELECT jenis_surat, COUNT(id) as count FROM pengajuan_surats WHERE $user_clause GROUP BY jenis_surat ORDER BY count DESC LIMIT 2";
 $res_sering = mysqli_query($conn, $sql_sering);
 $sering_digunakan = [];
@@ -53,16 +72,18 @@ if ($res_sering) {
     }
 }
 
-// Default fallback if no history
+// Fallback bawaan jika belum ada histori surat sama sekali
 if (count($sering_digunakan) == 0) {
     $sering_digunakan = ['pengantar_ktp', 'pengantar_kk'];
 } elseif (count($sering_digunakan) == 1) {
-    // If only 1, add a default second one to keep UI balanced
     $sering_digunakan[] = ($sering_digunakan[0] == 'pengantar_ktp') ? 'pengantar_kk' : 'pengantar_ktp';
 }
 
 mysqli_close($conn);
 
+// -----------------------------------------------------------------------------------------
+// 6. KIRIM HASIL REKAP STATISTIK
+// -----------------------------------------------------------------------------------------
 api_response([
     "success" => true,
     "total_pengajuan" => (int)$total_pengajuan,

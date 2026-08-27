@@ -1,11 +1,21 @@
 <?php
 /**
- * SINDESA API — Get Profil
- * Endpoint: GET/POST /get_profil.php
+ * =========================================================================================
+ * SINDESA REST API — Endpoint Ambil Data Profil Warga (get_profil.php)
+ * =========================================================================================
  * 
- * Mengambil data profil user berdasarkan token autentikasi.
- * SECURITY: NIK tidak lagi digunakan sebagai parameter (Guideline §5).
+ * FUNGSI UTAMA:
+ * 1. Mengambil biodata lengkap milik warga yang sedang login (Nama, NIK, KK, Alamat, Wilayah, TTL, Foto).
+ * 2. Menggabungkan kode wilayah dengan nama resmi provinsi, kota, kecamatan, dan kelurahan/desa.
+ * 
+ * PENERAPAN SECURE BY DESIGN:
+ * - Anti-IDOR (Insecure Direct Object Reference): ID warga diambil dari Bearer Token ($auth_user_id),
+ *   BUKAN dari parameter GET/POST NIK yang bisa dipalsukan oleh pengguna lain.
+ * - Prepared Statements: Mencegah kerentanan SQL Injection.
+ * =========================================================================================
  */
+
+// 1. Memuat konfigurasi keamanan bootstrap dan koneksi database
 require_once 'api_bootstrap.php';
 require_once 'db_config.php';
 
@@ -13,10 +23,17 @@ if (!$conn) {
     api_error("Koneksi database gagal", 500);
 }
 
-// Autentikasi wajib — identifikasi user dari Bearer token
+// -----------------------------------------------------------------------------------------
+// 2. OTENTIKASI WAJIB (MIDDLEWARE KEAMANAN)
+// -----------------------------------------------------------------------------------------
+// Mengekstrak dan memvalidasi Bearer Token dari header HTTP.
+// Jika token tidak valid / kadaluarsa -> Otomatis mengembalikan HTTP 401 Unauthorized.
 $auth_user_id = require_auth($conn);
 
-// Ambil data profil user berdasarkan user_id dari token (bukan NIK)
+// -----------------------------------------------------------------------------------------
+// 3. QUERY DATA PROFIL BERDASARKAN ID TOKEN (ANTI-IDOR & ANTI-SQLi)
+// -----------------------------------------------------------------------------------------
+// Menggunakan Prepared Statement dengan klausa WHERE u.id = ? (dikunci pada $auth_user_id).
 $sql = "SELECT u.name, u.nik, u.no_kk, u.email, u.agama, u.jenis_kelamin, u.tempat_lahir, u.tanggal_lahir,
                u.status_perkawinan, u.pekerjaan, u.kewarganegaraan, u.alamat_lengkap, u.rt_rw,
                u.provinsi, u.kota, u.kecamatan, u.kelurahan_desa, u.no_hp, u.phone, u.foto_profil, u.status,
@@ -36,18 +53,22 @@ $stmt->bind_param("i", $auth_user_id);
 $stmt->execute();
 $result = $stmt->get_result();
 
+// -----------------------------------------------------------------------------------------
+// 4. MEMBENTUK STRUKTUR RESPON JSON
+// -----------------------------------------------------------------------------------------
 if ($result && $result->num_rows > 0) {
     $user = $result->fetch_assoc();
     
-    // Gunakan no_hp jika ada, jika kosong gunakan phone dari web
+    // Normalisasi nomor telepon
     $noHpFinal = !empty($user['no_hp']) ? $user['no_hp'] : ($user['phone'] ?? '');
     
-    // Tampilkan nama daerah jika ada, jika tidak fallback ke kode daerah
+    // Normalisasi nama wilayah atau fallback ke kodenya jika belum ada di master data
     $provinsiFinal = !empty($user['prov_name']) ? $user['prov_name'] : ($user['provinsi'] ?? '');
     $kotaFinal = !empty($user['kota_name']) ? $user['kota_name'] : ($user['kota'] ?? '');
     $kecamatanFinal = !empty($user['kec_name']) ? $user['kec_name'] : ($user['kecamatan'] ?? '');
     $desaFinal = !empty($user['desa_name']) ? $user['desa_name'] : ($user['kelurahan_desa'] ?? '');
 
+    // Mengirim respon JSON ke aplikasi Android
     api_response([
         "success" => true,
         "message" => "Profil ditemukan",
